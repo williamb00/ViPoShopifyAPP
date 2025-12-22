@@ -27,7 +27,7 @@ export default function AdditionalPage() {
 
           <s-text-field
             label="Scrive URL"
-            placeholder="https://scrive.com/sign/your-contract"
+            placeholder="https://scrive.com/form/c4edadb9-6d35-4088-a03e-ef021a500bb1"
           ></s-text-field>
         </s-card>
       </s-section>
