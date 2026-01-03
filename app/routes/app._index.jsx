@@ -1,208 +1,155 @@
-import { useEffect } from "react";
-import { useFetcher } from "react-router";
-import { useAppBridge } from "@shopify/app-bridge-react";
+import { useLoaderData, useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
-  return null;
-};
+  const { session } = await authenticate.admin(request);
 
-export const action = async ({ request }) => {
-  await authenticate.admin(request);
+  // TODO (nästa steg): Hämta detta från DB när vi kopplar klick-tracking
+  const clickCount = 0;
 
-  const formData = await request.formData();
-  const intent = formData.get("intent");
+  // TODO (nästa steg): Hämta detta från dina settings per shop
+  // (t.ex. confirmationEmail som butiksägaren ställer in på Settings-sidan)
+  const confirmationEmail = null;
 
-  switch (intent) {
-    case "activate-subscription":
-      return {
-        status: "active",
-        message: "Konsumentkollen har aktiverats för din butik.",
-      };
-    case "deactivate-subscription":
-      return {
-        status: "inactive",
-        message: "Konsumentkollen har stängts av.",
-      };
-    default:
-      return { status: "idle" };
-  }
+  return {
+    shop: session.shop,
+    clickCount,
+    confirmationEmail,
+  };
 };
 
 export default function Index() {
-  const fetcher = useFetcher();
-  const shopify = useAppBridge();
+  const { shop, clickCount, confirmationEmail } = useLoaderData();
+  const navigate = useNavigate();
 
-  const isSubmitting =
-    fetcher.state === "submitting" || fetcher.state === "loading";
-
-  const currentStatus = fetcher.data?.status ?? "inactive";
-  const isActive = currentStatus === "active";
-
-  useEffect(() => {
-    if (fetcher.data?.message) {
-      shopify.toast.show(fetcher.data.message);
-    }
-  }, [fetcher.data?.message, shopify]);
-
-  const activate = () => {
-    fetcher.submit(
-      { intent: "activate-subscription" },
-      { method: "POST" },
-    );
-  };
-
-  const deactivate = () => {
-    fetcher.submit(
-      { intent: "deactivate-subscription" },
-      { method: "POST" },
-    );
-  };
+  const emailText =
+    confirmationEmail && confirmationEmail.trim().length > 0
+      ? confirmationEmail
+      : "Inte angivet";
 
   return (
     <s-page heading="Konsumentkollen från ViPo Säkerhetstjänster">
-      <s-button
-        slot="primary-action"
-        onClick={isActive ? deactivate : activate}
-        {...(isSubmitting ? { loading: true } : {})}
-      >
-        {isActive ? "Stäng av Konsumentkollen" : "Aktivera Konsumentkollen"}
+      <s-button slot="primary-action" onClick={() => navigate("/app/additional")}>
+        Öppna Settings
       </s-button>
 
-      {/* Huvudkort: produktbeskrivning och CTA */}
+      {/* VÄNSTERKOLUMN: Välkomst + status */}
       <s-section>
         <s-stack direction="block" gap="base">
-          <s-heading>Konsumentkollen för din webbutik</s-heading>
+          <s-heading>Välkommen!</s-heading>
+          <s-badge tone="success">Installerad och redo</s-badge>
 
           <s-paragraph>
-            Gör det enkelt för dina kunder att förstå sina rättigheter direkt
-            i köpupplevelsen. Konsumentkollen visar tydlig information om
-            ångerrätt, öppet köp och garanti i dina viktigaste flöden.
+            Konsumentkollen är installerad i <s-text emphasis>{shop}</s-text> och
+            redo att användas. Nästa steg är att lägga till widgeten i ditt tema
+            och välja vilken e‑postadress som ska få bekräftelsemail när en
+            signering är klar.
           </s-paragraph>
 
-          <s-stack direction="inline" gap="base">
-            <s-heading>89 kr / månad</s-heading>
-            <s-badge tone="success">Ingen bindningstid</s-badge>
-          </s-stack>
+          <s-box padding="base" borderWidth="base" borderRadius="base">
+            <s-heading>Bekräftelsemail</s-heading>
+            <s-paragraph>
+              Skickas till: <s-text emphasis>{emailText}</s-text>
+            </s-paragraph>
+            <s-paragraph>
+              Ändra mottagare under{" "}
+              <s-link href="/app/additional">Inställningar</s-link>.
+            </s-paragraph>
+          </s-box>
+        </s-stack>
+      </s-section>
+
+      {/* VÄNSTERKOLUMN: Klick-statistik */}
+      <s-section heading="Aktivitet">
+        <s-stack direction="block" gap="base">
+          <s-paragraph>Antal klick på “Bevaka” i widgeten</s-paragraph>
+          <s-heading>{clickCount}</s-heading>
+          <s-paragraph>
+            Visar hur många gånger kunder har klickat på knappen “Bevaka” i
+            Konsumentkollen-widgeten.
+          </s-paragraph>
+        </s-stack>
+      </s-section>
+
+      {/* VÄNSTERKOLUMN: Hur man lägger till widgeten */}
+      <s-section heading="Lägg till Konsumentkollen-widgeten">
+        <s-stack direction="block" gap="base">
+          <s-paragraph>
+            Du lägger till widgeten via Shopify Theme Editor:
+          </s-paragraph>
 
           <s-unordered-list>
             <s-list-item>
-              Färre onödiga reklamationer och missförstånd efter köp.
+              Gå till <s-text emphasis>Webbshop → Teman</s-text> och klicka{" "}
+              <s-text emphasis>Anpassa</s-text>.
             </s-list-item>
-            <s-list-item>Mindre tryck på kundtjänst.</s-list-item>
             <s-list-item>
-              Ökad trygghet för kunden – tydligt vad som gäller innan köp.
+              Klicka <s-text emphasis>Lägg till sektion/block</s-text> och välj{" "}
+              <s-text emphasis>Konsumentkollen</s-text>.
+            </s-list-item>
+            <s-list-item>
+              Placera widgeten där du vill visa den och spara.
             </s-list-item>
           </s-unordered-list>
 
-          <s-stack direction="inline" gap="base">
-            <s-button
-              variant="primary"
-              onClick={isActive ? deactivate : activate}
-              {...(isSubmitting ? { loading: true } : {})}
-            >
-              {isActive ? "Stäng av för butiken" : "Aktivera för butiken"}
-            </s-button>
-
-            <s-paragraph>
-              <s-text>
-                Vill du läsa mer?{" "}
-                <s-link href="https://vipo.se" target="_blank">
-                  Besök vipo.se
-                </s-link>
-              </s-text>
-            </s-paragraph>
-          </s-stack>
-        </s-stack>
-      </s-section>
-
-      {/* Kort: Var visas Konsumentkollen? */}
-      <s-section heading="Var visas Konsumentkollen?">
-        <s-paragraph>
-          När du aktiverar tjänsten kan Konsumentkollen visas på flera
-          nyckelplatser i butiken. I kommande versioner kan du slå av/på
-          respektive yta och finjustera texterna.
-        </s-paragraph>
-
-        <s-stack direction="block" gap="base">
-          <s-box padding="base" borderWidth="base" borderRadius="base">
-            <s-heading>Kundvagn</s-heading>
-            <s-paragraph>
-              Kunden ser sina rättigheter precis innan de går vidare till
-              kassan.
-            </s-paragraph>
-          </s-box>
-
-          <s-box padding="base" borderWidth="base" borderRadius="base">
-            <s-heading>Produktsida</s-heading>
-            <s-paragraph>
-              Tydlig information per produkt – extra viktigt för dyrare eller
-              mer komplexa varor.
-            </s-paragraph>
-          </s-box>
-
-          <s-box padding="base" borderWidth="base" borderRadius="base">
-            <s-heading>Checkout</s-heading>
-            <s-paragraph>
-              Sammanfattning av de viktigaste rättigheterna precis innan
-              betalning.
-            </s-paragraph>
-          </s-box>
-        </s-stack>
-      </s-section>
-
-      {/* Kort: Testköp */}
-      <s-section heading="Testa upplevelsen">
-        <s-paragraph>
-          När Konsumentkollen är aktiv kan du göra ett testköp i butiken för
-          att se exakt hur dina kunder upplever informationen.
-        </s-paragraph>
-
-        <s-paragraph>
-          <s-link href="/" target="_blank">
-            Öppna butiken i en ny flik
-          </s-link>
-        </s-paragraph>
-      </s-section>
-
-      {/* Högerspalt: statuskort */}
-      <s-section slot="aside" heading="Status för Konsumentkollen">
-        <s-stack direction="block" gap="base">
-          <s-badge tone={isActive ? "success" : "critical"}>
-            {isActive ? "Aktiv" : "Inte aktiv"}
-          </s-badge>
-
           <s-paragraph>
-            När tjänsten är aktiv debiteras{" "}
-            <s-text emphasis>89 kr / månad</s-text> via din Shopify-faktura.
-            Ingen bindningstid.
+            Tips: Om du inte ser blocket i Theme Editor, kontrollera att appens
+            theme extension är aktiverad för ditt tema.
+          </s-paragraph>
+        </s-stack>
+      </s-section>
+
+      {/* VÄNSTERKOLUMN: Flöde + provision */}
+      <s-section heading="Så fungerar det (kund → Scrive → bekräftelse)">
+        <s-stack direction="block" gap="base">
+          <s-unordered-list>
+            <s-list-item>
+              Kunden klickar på <s-text emphasis>Bevaka</s-text> i widgeten.
+            </s-list-item>
+            <s-list-item>
+              Kunden skickas vidare till en <s-text emphasis>Scrive</s-text>-sida
+              för avtalssignering.
+            </s-list-item>
+            <s-list-item>
+              När avtalet är signerat skickas ett{" "}
+              <s-text emphasis>bekräftelsemail</s-text> till den e‑postadress du
+              valt i <s-text emphasis>Inställningar</s-text>.
+            </s-list-item>
+            <s-list-item>
+              Som butiksägare får du <s-text emphasis>20 % av summan</s-text>{" "}
+              som tjänsten säljs för.
+            </s-list-item>
+          </s-unordered-list>
+        </s-stack>
+      </s-section>
+
+      {/* HÖGERKOLUMN: Om tjänsten */}
+      <s-section slot="aside" heading="Om Konsumentkollen">
+        <s-stack direction="block" gap="base">
+          <s-paragraph>
+            Konsumentkollen hjälper dina kunder att skydda sin identitet med
+            bevakning och omedelbara larm vid förändringar kopplade till
+            personnummer.
           </s-paragraph>
 
-          <s-box padding="base" borderWidth="base" borderRadius="base">
-            <s-heading>Nästa steg</s-heading>
-            <s-unordered-list>
-              <s-list-item>Aktivera tjänsten för din butik.</s-list-item>
-              <s-list-item>Gör ett testköp och se widgeten i kassan.</s-list-item>
-              <s-list-item>
-                Justera placeringar och texter när konfig‑sidan är på plats.
-              </s-list-item>
-            </s-unordered-list>
-          </s-box>
+          <s-paragraph>
+            <s-link href="https://vipo.se" target="_blank">
+              Läs mer på vipo.se
+            </s-link>
+          </s-paragraph>
         </s-stack>
       </s-section>
 
-      {/* Högerspalt: supportkort */}
-      <s-section slot="aside" heading="Support & kontakt">
+      {/* HÖGERKOLUMN: Support */}
+      <s-section slot="aside" heading="Support & tekniska frågor">
         <s-paragraph>
-          Har du frågor om Konsumentkollen eller vill diskutera större volymer?
-          Hör av dig till ViPo så hjälper vi dig vidare.
+          Behöver du hjälp med installationen eller har tekniska frågor om
+          appen?
         </s-paragraph>
 
         <s-unordered-list>
-          <s-list-item>E‑post: support@vipo.se</s-list-item>
-          <s-list-item>Telefon: 010‑000 00 00</s-list-item>
+          <s-list-item>E‑post: william.bjorklund@vipo.se</s-list-item>
         </s-unordered-list>
       </s-section>
     </s-page>
