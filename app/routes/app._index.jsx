@@ -5,28 +5,41 @@ import { authenticate } from "../shopify.server";
 export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
 
-  // TODO (nästa steg): Hämta detta från DB när vi kopplar klick-tracking
+  // TODO: Hämta detta från DB när vi kopplar klick-tracking
   const clickCount = 0;
 
-  // TODO (nästa steg): Hämta detta från dina settings per shop
-  // (t.ex. confirmationEmail som butiksägaren ställer in på Settings-sidan)
+  // TODO: Hämta detta från DB när vi kopplar "köp/signeringar" (Scrive/Make → din backend)
+  const purchaseCount = 0;
+
+  // TODO: Hämta senaste klick-tid från DB (t.ex. createdAt på senaste WidgetClick)
+  // Sätt som ISO-sträng (new Date().toISOString()) eller null om inget finns
+  const lastClickAt = null;
+
+  // TODO: Hämta detta från dina settings per shop (confirmationEmail)
   const confirmationEmail = null;
 
   return {
     shop: session.shop,
     clickCount,
+    purchaseCount,
+    lastClickAt,
     confirmationEmail,
   };
 };
 
 export default function Index() {
-  const { shop, clickCount, confirmationEmail } = useLoaderData();
+  const { shop, clickCount, purchaseCount, lastClickAt, confirmationEmail } =
+    useLoaderData();
   const navigate = useNavigate();
 
   const emailText =
     confirmationEmail && confirmationEmail.trim().length > 0
       ? confirmationEmail
       : "Inte angivet";
+
+  const lastClickText = lastClickAt
+    ? new Date(lastClickAt).toLocaleString("sv-SE")
+    : "Ingen aktivitet ännu";
 
   return (
     <s-page heading="Konsumentkollen från ViPo Säkerhetstjänster">
@@ -54,20 +67,36 @@ export default function Index() {
             </s-paragraph>
             <s-paragraph>
               Ändra mottagare under{" "}
-              <s-link href="/app/additional">Inställningar</s-link>.
+              <s-link href="/app/additional">Settings</s-link>.
             </s-paragraph>
           </s-box>
         </s-stack>
       </s-section>
 
-      {/* VÄNSTERKOLUMN: Klick-statistik */}
+      {/* VÄNSTERKOLUMN: Aktivitet (klick + köp + senaste klick) */}
       <s-section heading="Aktivitet">
         <s-stack direction="block" gap="base">
-          <s-paragraph>Antal klick på “Bevaka” i widgeten</s-paragraph>
-          <s-heading>{clickCount}</s-heading>
+          <s-stack direction="inline" gap="base">
+            <s-box padding="base" borderWidth="base" borderRadius="base">
+              <s-paragraph>Klick på “Bevaka”</s-paragraph>
+              <s-heading>{clickCount}</s-heading>
+            </s-box>
+
+            <s-box padding="base" borderWidth="base" borderRadius="base">
+              <s-paragraph>Sålda tjänster</s-paragraph>
+              <s-heading>{purchaseCount}</s-heading>
+            </s-box>
+
+            <s-box padding="base" borderWidth="base" borderRadius="base">
+              <s-paragraph>Senaste klick</s-paragraph>
+              <s-text emphasis>{lastClickText}</s-text>
+            </s-box>
+          </s-stack>
+
           <s-paragraph>
-            Visar hur många gånger kunder har klickat på knappen “Bevaka” i
-            Konsumentkollen-widgeten.
+            Klick visar hur många gånger kunder har tryckt på “Bevaka”. Sålda
+            tjänster visar antal genomförda köp/signeringar. Senaste klick hjälper
+            dig se om widgeten används just nu.
           </s-paragraph>
         </s-stack>
       </s-section>

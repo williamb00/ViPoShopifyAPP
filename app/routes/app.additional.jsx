@@ -141,32 +141,6 @@ export default function AdditionalPage() {
         </s-card>
       </s-section>
 
-      {/* ----------------------- Widget Placement ----------------------- */}
-      <s-section heading="Widget placering">
-        <s-card>
-          <s-paragraph>
-            Välj var du vill använda widgeten.
-            <br />
-            Placeringen sker via Shopify Theme Editor (du lägger till blocket på
-            respektive sida).
-          </s-paragraph>
-
-          <s-select
-            label="Placering"
-            value={placement}
-            onChange={(e) => {
-              const next = e?.target?.value ?? e?.detail?.value ?? placement;
-              setPlacement(String(next));
-            }}
-            options='[
-              { "label": "Kundvagn", "value": "cart" },
-              { "label": "Checkout", "value": "checkout" },
-              { "label": "Produktsidor", "value": "product" }
-            ]'
-          ></s-select>
-        </s-card>
-      </s-section>
-
       {/* ----------------------- Preview (ASIDE LAYOUT) ----------------------- */}
       <s-section slot="aside" heading="Förhandsvisning av widgeten">
         <s-card>
